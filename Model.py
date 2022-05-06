@@ -15,16 +15,16 @@ def build_model():
     Build a baseline acceleration prediction network.
 
     The network takes one input:
-        img - first frame of the video
+        img - (256,256,1)
 
     The output is:
-        (x,y,D) - predicted center location and 
+        (x,y,D) - predicted center location and Diameter (Pixels)
 
     """
 
-    img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],1), name='img')
+    img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],3), name='img')
 
-    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],1),activation = "relu")(img_input)
+    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
     pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_1)
 
     conv_2 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_1)
@@ -40,3 +40,14 @@ def build_model():
     ########## Your code ends here ##########
 
     return tf.keras.Model(inputs=[img_input], outputs=[rad_pred])
+
+def loss(y_est,y):
+    # actual = tf.convert_to_tensor(actual)
+    # predict = tf.convert_to_tensor(predict)
+    # Regularized L2 Loss
+    alpha = 10
+    beta = 1
+    l = tf.reduce_mean(tf.square(y_est - y),0)
+    return alpha * l[:2] + beta * l[2]
+    # return  alpha* tf.nn.l2_loss(actual[:2],predict[:2]) + beta * tf.nn.l2_loss(actual[2],predict[2])
+
