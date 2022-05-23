@@ -13,7 +13,7 @@ def get_data(): ## Straight Regression from CNN to center values
     labels = None,
     color_mode='rgb',
     batch_size = None,
-    image_size=(DIM_IMG[0], DIM_IMG[1]),
+    # image_size=(DIM_IMG[0], DIM_IMG[1]),
     shuffle=False,
     seed=None,
     validation_split=None,
@@ -22,9 +22,13 @@ def get_data(): ## Straight Regression from CNN to center values
     follow_links=False,
     crop_to_aspect_ratio=False)
     
+
+    # images = list(inputs.as_numpy_iterator())
+    # images_grey = [cv2.cvtColor(im, cv2.COLOR_RGB2GRAY) for im in images]
+    # inputs_grey = tf.data.Dataset.from_tensor_slices(images_grey)
     #Load Labels
     labeled_data = pd.read_csv("Data/E163L02A/E163L02A_labels.csv",header=1)
-    labeled_data = np.array(labeled_data)[:,[1,2,4]]/4
+    labeled_data = np.array(labeled_data)[:,[1,2,4]]
     size_dataset =  labeled_data.shape[0]
     labels = tf.data.Dataset.from_tensor_slices(labeled_data)
 
@@ -55,28 +59,41 @@ def get_data2(): ### Creates Image Masks for RCNN
     interpolation='bilinear',
     follow_links=False,
     crop_to_aspect_ratio=False)
+
     
+    
+
+    def normalize(input_image):
+        input_image = tf.cast(input_image, tf.float32) / 255.0
+        return input_image
+    inputs = inputs.map(normalize,num_parallel_calls=tf.data.AUTOTUNE)
     #Load Labels
     labeled_data = pd.read_csv("Data/E163L02A/E163L02A_labels.csv",header=1)
     labeled_data = np.array(labeled_data)[:,[1,2,4]]/4
     size_dataset =  labeled_data.shape[0]
 
     masks = []
+
+    for element in inputs:
+            im = element
+            break
     for i in range(size_dataset):
         #3 Channel Mask
         # c = cv2.circle(np.zeros((256,256,3)),labeled_data[i,:2].astype(int),int(np.ceil(labeled_data[i,2])),(255,255,255),-1)
         # c_mask = cv2.threshold(c, 128, 255, cv2.THRESH_BINARY)[1]
         # plt.imshow(c_mask)
         # masks.append(c_mask)
-
         # Binary
-        c = cv2.circle(np.zeros((256,256,1)),labeled_data[i,:2].astype(int),int(np.ceil(labeled_data[i,2])),1,-1).astype(np.uint8)
+        c = cv2.circle(np.zeros((DIM_IMG[0],DIM_IMG[1],1)),labeled_data[i,:2].astype(int),int(np.ceil(labeled_data[i,2])/2),1,-1).astype(np.uint8)
         masks.append(c)
+        # plt.subplot(2,1,1)
+        # plt.imshow(c)
+        # plt.subplot(2,1,2)
+        # plt.imshow(im.numpy().astype(np.uint8))
+        # print("hi")
 
-    # for element in inputs:
-    #     im = element
-    #     break
-    # c = plt.Circle((59.4, 29.2), 18.2,color = "red",fill = False)
+    
+    # # c = plt.Circle((59.4, 29.2), 18.2,color = "red",fill = False)
     # ax = plt.imshow(im.numpy().astype(np.uint8)).axes
     # ax.add_patch(c)
     mask_labels = tf.data.Dataset.from_tensor_slices(masks)
