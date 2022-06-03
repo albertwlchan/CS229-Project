@@ -23,16 +23,16 @@ def build_model():
 
     img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],3), name='img')
 
-    conv_1 = tf.keras.layers.Conv2D(64, (5,5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
+    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
     pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_1)
 
-    # conv_2 = tf.keras.layers.Conv2D(64, (10, 10),activation = "relu")(pool_1)
-    # pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_2)
+    conv_2 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_1)
+    pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_2)
 
-    # conv_3 = tf.keras.layers.Conv2D(64, (20, 20),activation = "relu")(pool_2)
-    # pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_3)
+    conv_3 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_2)
+    pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_3)
 
-    flat_out = tf.keras.layers.Flatten()(pool_1)
+    flat_out = tf.keras.layers.Flatten()(pool_3)
     # dense_1 = tf.keras.Dense(64, activation = "relu")(flat_out)
     rad_pred = tf.keras.layers.Dense(3, name='center_radius')(flat_out) #
 
@@ -55,27 +55,29 @@ def build_model2():
 
     img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],3), name='img')
 
-    conv_1 = tf.keras.layers.Conv2D(32, 5,padding = "same", input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
-    # pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(5, 5))(conv_1)
+    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
+    pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_1)
 
-    conv_2 = tf.keras.layers.Conv2D(32, 5, padding = "same", activation = "relu")(conv_1)
-    # pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(5, 5))(conv_2)
+    conv_2 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_1)
+    pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_2)
 
-    # conv_3 = tf.keras.layers.Conv2D(32, (5, 5),activation = "relu")(pool_2)
-    # pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(5, 5))(conv_3)
-    outputs = tf.keras.layers.Conv2D(1 , 5, padding = "same", activation = "sigmoid")(conv_2)
+    conv_3 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_2)
+    pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_3)
+
+    flat_out = tf.keras.layers.Flatten()(pool_3)
     # dense_1 = tf.keras.Dense(64, activation = "relu")(flat_out)
-    # rad_pred = tf.keras.layers.Dense(3, name='center_radius')(flat_out) #
+    rad_pred = tf.keras.layers.Dense(3, name='center_radius')(flat_out) #
 
     ########## Your code ends here ##########
 
-    return tf.keras.Model(inputs=[img_input], outputs=[outputs])
+    return tf.keras.Model(inputs=[img_input], outputs=[rad_pred])
 
 def loss(y_est,y):
     # actual = tf.convert_to_tensor(actual)
     # predict = tf.convert_to_tensor(predict)
     # Regularized L2 Loss
-    
-    bce = tf.keras.losses.BinaryCrossentropy()
-    return bce(y,y_est)
+    alpha = 3
+    beta = 1
+    l = tf.reduce_mean(tf.square(y_est - y),0)
+    return alpha * l[:2] + beta * l[2]
 
