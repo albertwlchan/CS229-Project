@@ -1,117 +1,35 @@
 import tensorflow as tf
-from Model import build_model, build_model2, loss
-from get_data import  get_data2
+from Model import build_model
+from get_data import  get_data
 import cv2
 import os 
 import matplotlib.pyplot as plt
 import numpy as np
-import pix2pix
 
-DIM_IMG = [512,512]
 LEARNING_RATE = 1e-3
 NUM_EPOCHS = 40
-Train = False
+Train = True
 Resolution = 0.029555664*2 # mm/pixel (after downsizing)
 
 def main():
-
-
-    # def create_mask(pred_mask):
-    #     pred_mask = tf.math.argmax(pred_mask, axis=-1)
-    #     pred_mask = pred_mask[..., tf.newaxis]
-    #     return pred_mask[0]
-    # def display(display_list):
-    #     plt.figure(figsize=(15, 15))
-
-    #     title = ['Input Image', 'True Mask', 'Predicted Mask']
-
-    #     for i in range(len(display_list)):
-    #         plt.subplot(1, len(display_list), i+1)
-    #         plt.title(title[i])
-    #         plt.imshow(tf.keras.utils.array_to_img(display_list[i]))
-    #         plt.axis('off')
-    #     plt.show()
-
-    # for images, masks in train_batches.take(2):
-    #     sample_image, sample_mask = images[0], masks[0]
-    #     display([sample_image, sample_mask])
-
-    # def show_predictions(dataset=None, num=1):
-    #     if dataset:
-    #         for image, mask in dataset.take(num):
-    #         pred_mask = model.predict(image)
-    #         display([image[0], mask[0], create_mask(pred_mask)])
-    #     else:
-    #         display([sample_image, sample_mask,
-    #                 create_mask(model.predict(sample_image[tf.newaxis, ...]))])
-
 
     path_model =  os.path.join('./src/trained_model.h5')
 
     # Load training and test data
     print("Loading Dataset")
-    train_data,test_data,diameter_ground_truth = get_data2()
+    train_data,test_data,diameter_ground_truth,DIM_IMG = get_data()
     print("loaded Dataset")
 
     #Builds model if doesn't exist
     if not os.path.exists(path_model) or Train == True:
-        # model = build_model2()
-        # model.compile(optimizer=tf.keras.optimizers.Adam(LEARNING_RATE),
-        #             loss=tf.keras.losses.BinaryCrossentropy(from_logits = True) )
-        print("Building Model")
-        base_model = tf.keras.applications.MobileNetV2(input_shape=[DIM_IMG[0], DIM_IMG[1], 3], include_top=False)
-
-        # Use the activations of these layers
-        layer_names = [
-            'block_1_expand_relu',   # 64x64
-            'block_3_expand_relu',   # 32x32
-            'block_6_expand_relu',   # 16x16
-            'block_13_expand_relu',  # 8x8
-            'block_16_project',      # 4x4
-            ]
-        
-        up_stack = [
-            pix2pix.upsample(512, 3),  # 4x4 -> 8x8
-            pix2pix.upsample(256, 3),  # 8x8 -> 16x16
-            pix2pix.upsample(128, 3),  # 16x16 -> 32x32
-            pix2pix.upsample(64, 3),   # 32x32 -> 64x64
-        ]
-        
-        base_model_outputs = [base_model.get_layer(name).output for name in layer_names]
-        down_stack = tf.keras.Model(inputs=base_model.input, outputs=base_model_outputs)
-        down_stack.trainable = False
-
-        def unet_model(output_channels:int):
-            inputs = tf.keras.layers.Input(shape=[DIM_IMG[0], DIM_IMG[1], 3])
-
-            # Downsampling through the model
-            skips = down_stack(inputs)
-            x = skips[-1]
-            skips = reversed(skips[:-1])
-
-            # Upsampling and establishing the skip connections
-            for up, skip in zip(up_stack, skips):
-                x = up(x)
-                concat = tf.keras.layers.Concatenate()
-                x = concat([x, skip])
-
-            # This is the last layer of the model
-            last = tf.keras.layers.Conv2DTranspose(
-                filters=output_channels, kernel_size=3, strides=2,
-                padding='same')  #64x64 -> 128x128
-
-            x = last(x)
-
-            return tf.keras.Model(inputs=inputs, outputs=x)
 
         OUTPUT_CLASSES = 2
-
-        model = unet_model(output_channels=OUTPUT_CLASSES)
+        print("Building Model")
+        model = build_model( DIM_IMG,output_channels=OUTPUT_CLASSES) 
         model.compile(optimizer='adam',
                     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                     metrics=['accuracy'])
 
-        # tf.keras.utils.plot_model(model, show_shapes=True)
 
         #Model Training
         model.fit(train_data,

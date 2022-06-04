@@ -7,41 +7,7 @@ import matplotlib.pyplot as plt
 
 DIM_IMG = [512,512]
 
-# def get_data(): ## Straight Regression from CNN to center values
-#     inputs = tf.keras.utils.image_dataset_from_directory(
-#     "Data/E163L02A",
-#     labels = None,
-#     color_mode='rgb',
-#     batch_size = None,
-#     image_size=(DIM_IMG[0], DIM_IMG[1]),
-#     shuffle=False,
-#     seed=None,
-#     validation_split=None,
-#     subset=None,
-#     interpolation='bilinear',
-#     follow_links=False,
-#     crop_to_aspect_ratio=False)
-    
-#     #Load Labels
-#     labeled_data = pd.read_csv("Data/E163L02A/E163L02A_labels.csv",header=1)
-#     labeled_data = np.array(labeled_data)[:,[1,2,4]]/2
-#     size_dataset =  labeled_data.shape[0]
-#     labels = tf.data.Dataset.from_tensor_slices(labeled_data)
-
-#     #Shuffles and batches Dataset
-#     train_dataset = tf.data.Dataset.zip((inputs,labels)).batch(32).shuffle(size_dataset)
-
-#     #Train test split
-#     # num_test = int(0.2*size_dataset)
-#     # test_dataset = dataset.take(num_test)
-#     # train_dataset = dataset.skip(num_test) \
-#     #                        .shuffle(num_train, reshuffle_each_iteration=True) \
-#     #                        .repeat(None)
-
-#     return train_dataset,train_dataset,inputs
-
-
-def get_data2(): ### Creates Image Masks for RCNN
+def get_data(): ### Creates Image Masks for RCNN
     inputs = tf.keras.utils.image_dataset_from_directory(
     "Data/E163L02A",
     labels = None,
@@ -113,4 +79,4 @@ def get_data2(): ### Creates Image Masks for RCNN
     t = t.take(num_test)
     diameter_ground_truth = np.array(list(t.as_numpy_iterator())).flatten()
 
-    return train_dataset,test_dataset,diameter_ground_truth
+    return train_dataset,test_dataset,diameter_ground_truth,DIM_IMG

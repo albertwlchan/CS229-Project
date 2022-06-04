@@ -2,82 +2,55 @@ from cProfile import label
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+import pix2pix
 
 
-DIM_IMG = [256,256]
+def build_model( DIM_IMG, output_channels:int):
 
-SIZE_BATCH = 32
+    #### BASE MODEL #### 
+    base_model = tf.keras.applications.MobileNetV2(input_shape=[DIM_IMG[0], DIM_IMG[1], 3], include_top=False)
+
+        # Use the activations of these layers
+    layer_names = [
+        'block_1_expand_relu',   # 64x64
+        'block_3_expand_relu',   # 32x32
+        'block_6_expand_relu',   # 16x16
+        'block_13_expand_relu',  # 8x8
+        'block_16_project',      # 4x4
+        ]
+    
+    up_stack = [
+        pix2pix.upsample(512, 3),  # 4x4 -> 8x8
+        pix2pix.upsample(256, 3),  # 8x8 -> 16x16
+        pix2pix.upsample(128, 3),  # 16x16 -> 32x32
+        pix2pix.upsample(64, 3),   # 32x32 -> 64x64
+    ]
+    
+    base_model_outputs = [base_model.get_layer(name).output for name in layer_names]
+    down_stack = tf.keras.Model(inputs=base_model.input, outputs=base_model_outputs)
+    down_stack.trainable = False
+
+    inputs = tf.keras.layers.Input(shape=[DIM_IMG[0], DIM_IMG[1], 3])
+
+    # Downsampling through the model
+    skips = down_stack(inputs)
+    x = skips[-1]
+    skips = reversed(skips[:-1])
+
+    # Upsampling and establishing the skip connections
+    for up, skip in zip(up_stack, skips):
+        x = up(x)
+        concat = tf.keras.layers.Concatenate()
+        x = concat([x, skip])
+
+    # This is the last layer of the model
+    last = tf.keras.layers.Conv2DTranspose(
+        filters=output_channels, kernel_size=3, strides=2,
+        padding='same')  #64x64 -> 128x128
+
+    x = last(x)
+
+    return tf.keras.Model(inputs=inputs, outputs=x)
 
 
-def build_model():
-    """
-    Build a baseline acceleration prediction network.
-
-    The network takes one input:
-        img - (256,256,1)
-
-    The output is:
-        (x,y,D) - predicted center location and Diameter (Pixels)
-
-    """
-
-    img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],3), name='img')
-
-    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
-    pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_1)
-
-    conv_2 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_1)
-    pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_2)
-
-    conv_3 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_2)
-    pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_3)
-
-    flat_out = tf.keras.layers.Flatten()(pool_3)
-    # dense_1 = tf.keras.Dense(64, activation = "relu")(flat_out)
-    rad_pred = tf.keras.layers.Dense(3, name='center_radius')(flat_out) #
-
-    ########## Your code ends here ##########
-
-    return tf.keras.Model(inputs=[img_input], outputs=[rad_pred])
-
-
-def build_model2():
-    """
-    Build a baseline acceleration prediction network.
-
-    The network takes one input:
-        img - (256,256,1)
-
-    The output is:
-        (x,y,D) - predicted center location and Diameter (Pixels)
-
-    """
-
-    img_input = tf.keras.Input(shape=(DIM_IMG[1], DIM_IMG[0],3), name='img')
-
-    conv_1 = tf.keras.layers.Conv2D(64, (5, 5),input_shape=(DIM_IMG[1], DIM_IMG[0],3),activation = "relu")(img_input)
-    pool_1 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_1)
-
-    conv_2 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_1)
-    pool_2 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_2)
-
-    conv_3 = tf.keras.layers.Conv2D(64, (5, 5),activation = "relu")(pool_2)
-    pool_3 = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(conv_3)
-
-    flat_out = tf.keras.layers.Flatten()(pool_3)
-    # dense_1 = tf.keras.Dense(64, activation = "relu")(flat_out)
-    rad_pred = tf.keras.layers.Dense(3, name='center_radius')(flat_out) #
-
-    ########## Your code ends here ##########
-
-    return tf.keras.Model(inputs=[img_input], outputs=[rad_pred])
-
-def loss(y_est,y):
-    # actual = tf.convert_to_tensor(actual)
-    # predict = tf.convert_to_tensor(predict)
-    # Regularized L2 Loss
-    alpha = 3
-    beta = 1
-    l = tf.reduce_mean(tf.square(y_est - y),0)
-    return alpha * l[:2] + beta * l[2]
 
