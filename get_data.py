@@ -77,6 +77,6 @@ def get_data(): ### Creates Image Masks for RCNN
     t = t.shuffle(1380, reshuffle_each_iteration=False, seed=1234) \
                   .batch(32)
     t = t.take(num_test)
-    diameter_ground_truth = np.array(list(t.as_numpy_iterator())).flatten()
+    diameter_ground_truth = np.array(list(t.as_numpy_iterator()))
 
     return train_dataset,test_dataset,diameter_ground_truth,DIM_IMG
