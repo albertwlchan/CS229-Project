@@ -15,9 +15,10 @@ def main():
 
     path_model =  os.path.join('./src/trained_model.h5')
 
+    path_image = "Data/E163L02A"
     # Load training and test data
     print("Loading Dataset")
-    train_data,test_data,diameter_ground_truth,DIM_IMG = get_data()
+    train_data,test_data,diameter_ground_truth,DIM_IMG = get_data(path_image)
     print("loaded Dataset")
 
     #Builds model if doesn't exist
